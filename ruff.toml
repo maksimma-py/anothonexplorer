@@ -1,0 +1,36 @@
+#:schema https://www.schemastore.org/ruff.json
+
+cache-dir = "~/.cache/ruff"
+force-exclude = true
+preview = true
+show-fixes = true
+unsafe-fixes = true
+line-length = 79
+
+[analyze]
+detect-string-imports = true
+
+[format]
+docstring-code-format = true
+nested-string-quote-style = "preferred"
+
+[lint]
+select = ["ALL"]
+ignore = ["COM812", "CPY", "D", "FIX001", "FIX003", "FIX004", "S603"]
+
+[lint.per-file-ignores]
+"*_test.py" = ["S"]
+
+[lint.pycodestyle]
+max-line-length = 120
+
+[lint.isort]
+force-wrap-aliases = true
+combine-as-imports = true
+relative-imports-order = "closest-to-furthest"
+
+[lint.mccabe]
+max-complexity = 6
+
+[lint.pydoclint]
+ignore-one-line-docstrings = true
