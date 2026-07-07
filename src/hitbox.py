@@ -4,9 +4,10 @@ from math import inf
 from operator import attrgetter
 
 import pygame
+from environs import env
 from loguru import logger
 
-from .abstract_classes import BaseSprite, SpriteWithDirection
+from .abstract_classes import BaseSprite
 from .config import DEBUG, GROUPS
 
 
@@ -31,7 +32,9 @@ class DebugPoint(BaseSprite):
 
 
 class Hitbox:
-    def __init__(self, sprite: SpriteWithDirection) -> None:
+    step = env.float("HITBOX_STEP")
+
+    def __init__(self, sprite: BaseSprite) -> None:
         self.sprite = sprite
 
     def collides(
@@ -49,13 +52,23 @@ class Hitbox:
         *args: PS.args,
         **kwargs: PS.kwargs,
     ) -> None:
+        last_countervector: pygame.Vector2 | None = None
+
         while collided := collider(*args, **kwargs):
             x, y = self.sprite.rect.center
             if DEBUG:
                 DebugPoint(x, y)
-            self.sprite.rect.center += self.get_collision_countervector(
-                collided
-            )
+            last_countervector = self.get_collision_countervector(collided)
+            self.sprite.rect.center += last_countervector
+
+        if last_countervector is None:
+            return
+
+        last_countervector.normalize_ip()
+
+        while not collider(*args, **kwargs):
+            self.sprite.rect.center -= last_countervector
+        self.sprite.rect.center += last_countervector
 
     def try_to_not_collide_with_blocks(self) -> None:
         self.try_to_not_collide(self.block_collides)
@@ -87,7 +100,7 @@ class Hitbox:
             for point in points:
                 point.x /= abs(point.x) or 1
                 point.y /= abs(point.y) or 1
-            logger.debug(points)
+            logger.debug(f"COLLIDED ANGLES: {points}")
 
         countervector.x = (
             collided.rect.collidepoint(self.rect.topleft)
@@ -114,12 +127,16 @@ class Hitbox:
 
         if comparing:
             countervector = comparing.elementwise() * countervector
-        logger.debug(f"{countervector} {comparing}")
+        logger.debug(f"{countervector = }")
 
-        return countervector.normalize()
+        return countervector.normalize() * self.step
+
+    @property
+    def rel_rect(self) -> pygame.FRect:
+        return pygame.FRect(self.sprite.image.get_bounding_rect())
 
     @property
     def rect(self) -> pygame.FRect:
-        hitbox = pygame.FRect(self.sprite.image.get_bounding_rect())
-        hitbox.center += pygame.Vector2(self.sprite.rect.topleft)
-        return hitbox
+        rel_rect = self.rel_rect
+        rel_rect.center += pygame.Vector2(self.sprite.rect.topleft)
+        return rel_rect

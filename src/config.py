@@ -27,12 +27,11 @@ env.add_parser("surface", __surface_parser)
 
 def init_logger() -> None:
     logger.remove()
-    if DEBUG:
-        logger.add(
-            sys.stderr,
-            level="DEBUG",
-            format="<level>[{level.name} at {time:HH:mm}]</level> {message}",
-        )
+    logger.add(
+        sys.stderr,
+        level="DEBUG" if DEBUG else "INFO",
+        format="<level>[{level.name} at {time:HH:mm}]</level> {message}",
+    )
 
 
 class Singleton(SimpleNamespace):
@@ -68,6 +67,16 @@ class Groups(Singleton):
     DEBUG_POINTS: pygame.sprite.Group[pygame.sprite.Sprite] = (
         pygame.sprite.Group()
     )
+    DECORATION: pygame.sprite.Group[pygame.sprite.Sprite] = (
+        pygame.sprite.Group()
+    )
 
 
 GROUPS = Groups()
+
+
+class Events(Singleton):
+    CHANGE_DECORATION = pygame.event.Event(pygame.event.custom_type())
+
+
+EVENTS = Events()

@@ -1,10 +1,11 @@
 from collections.abc import Sequence
+from itertools import cycle
 
 import pygame
 from environs import env
 
-from .config import DEBUG, DISPLAY, FPS, GROUPS, display
-from .sprites import Block, Player
+from .config import DEBUG, DISPLAY, EVENTS, FPS, GROUPS, display
+from .sprites import Block, Candle, Candles, Player, Torch
 
 
 class Game:
@@ -30,6 +31,9 @@ class Game:
         for _ in range(20):
             Block("gray50")
 
+        self.decorations = cycle((Candle, Candles, Torch))
+        self.current_decoration = next(self.decorations)()
+
     def start(self) -> None:
         self.running = True
 
@@ -37,8 +41,12 @@ class Game:
             self.dt = self.clock.tick(self.fps) / 1000
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
+                match event.type:
+                    case pygame.QUIT:
+                        self.running = False
+                    case EVENTS.CHANGE_DECORATION.type:
+                        self.current_decoration.kill()
+                        self.current_decoration = next(self.decorations)()
 
             if self.running:
                 self.update_and_draw_sprites("gray30")
@@ -68,12 +76,31 @@ class UI:
 
     def draw(self) -> None:
         if DEBUG:
+            hitbox_color = (
+                "purple"
+                if self.game.player.hitbox.collides(GROUPS.DECORATION)
+                else "green"
+            )
+
+            pygame.draw.rect(
+                display, hitbox_color, self.game.player.hitbox.rect, width=7
+            )
+
+            pygame.draw.rect(display, "red", self.game.player.rect, width=7)
+
+            pygame.draw.rect(
+                display,
+                "blue",
+                self.game.current_decoration.hitbox.rect,
+                width=7,
+            )
+
             debug_text = ""
 
             debug_text += f"Time: {pygame.time.get_ticks() / 1000:.2f}\n"
             debug_text += f"FPS: {self.game.clock.get_fps():.2f}\n"
 
-            debug_text += f"Player direction: {self.game.player.tilemap_animations.current_str_direction}\n"
+            debug_text += f"Player direction: {self.game.player.player_animations.current_str_direction}\n"
             debug_text += f"Player direction magnitude: {self.game.player.direction.magnitude():.2f}\n"
 
             text_surface = self.render_outlined(

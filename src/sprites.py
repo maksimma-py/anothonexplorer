@@ -2,14 +2,19 @@ from collections.abc import Sequence
 from random import randint
 
 import pygame
-from pygame import (
-    locals as lc,
+from pygame import locals as lc
+
+from src.animation.decoration import (
+    CANDLE_ANIMATION,
+    CANDLES_ANIMATION,
+    TORCH_ANIMATION,
 )
 
 from .abstract_classes import BaseSprite, SpriteWithDirection
-from .config import DEBUG, DISPLAY, GROUPS, display
+from .animation.base_animation import BaseAnimation
+from .animation.player import PlayerAnimation
+from .config import DISPLAY, EVENTS, GROUPS
 from .hitbox import Hitbox
-from .tilemap_animation import PlayerTMAnimation
 
 
 class Player(SpriteWithDirection):
@@ -20,23 +25,19 @@ class Player(SpriteWithDirection):
         self.direction = pygame.Vector2()
 
         self.hitbox = Hitbox(self)
-        self.tilemap_animations = PlayerTMAnimation(self)
+        self.player_animations = PlayerAnimation(self)
 
-        self.image = next(self.tilemap_animations.current_animation)
+        self.image = next(self.player_animations.current_animation)
         self.rect = self.image.get_frect()
 
     def update(self, dt: float) -> None:
         self.direction.update(self.delta_move_vector)
         self.move(dt)
 
-        self.tilemap_animations.change_animation()
-        self.image = next(self.tilemap_animations.current_animation)
+        self.player_animations.change_animation()
+        self.image = next(self.player_animations.current_animation)
 
         self.hitbox.try_to_not_collide_with_blocks()
-
-        if DEBUG:
-            pygame.draw.rect(display, "red", self.rect, 7)
-            pygame.draw.rect(display, "green", self.hitbox.rect, 7)
 
     @property
     def delta_move_vector(self) -> pygame.Vector2:
@@ -96,3 +97,41 @@ class Block(BaseSprite):
 
     def update(self, dt: float) -> None:
         super().update(dt)
+
+
+class Decoration(BaseSprite):
+    image: pygame.Surface
+    rect: pygame.FRect
+
+    def __init__(
+        self, animation: BaseAnimation, *groups: pygame.sprite.AbstractGroup
+    ) -> None:
+        super().__init__(GROUPS.DECORATION, *groups)
+
+        self.hitbox = Hitbox(self)
+        self.animations = iter(animation)
+
+        self.image = next(self.animations)
+        self.rect = self.image.get_frect()
+
+    def update(self, dt: float) -> None:  # noqa: ARG002
+        keys = pygame.key.get_just_pressed()
+        if keys[lc.K_l]:
+            pygame.event.post(EVENTS.CHANGE_DECORATION)
+        self.rect.center = pygame.mouse.get_pos()
+        self.image = next(self.animations)
+
+
+class Candle(Decoration):
+    def __init__(self) -> None:
+        super().__init__(CANDLE_ANIMATION)
+
+
+class Candles(Decoration):
+    def __init__(self) -> None:
+        super().__init__(CANDLES_ANIMATION)
+
+
+class Torch(Decoration):
+    def __init__(self) -> None:
+        super().__init__(TORCH_ANIMATION)
