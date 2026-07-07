@@ -1,0 +1,23 @@
+from abc import ABC, abstractmethod
+
+import pygame
+
+from .config import GROUPS
+
+
+class BaseSprite(ABC, pygame.sprite.Sprite):
+    image: pygame.Surface
+    rect: pygame.FRect
+    _layer: float = 0
+
+    @abstractmethod
+    def __init__(self, *groups: pygame.sprite.AbstractGroup) -> None:
+        super().__init__(GROUPS.UNIVERSUM, *groups)
+
+    @abstractmethod
+    def update(self, dt: float) -> None:
+        pass
+
+
+class SpriteWithDirection(BaseSprite):
+    direction: pygame.Vector2
