@@ -4,7 +4,8 @@
 
 ## Controls
 
-...
+- W/A/S/D or ↑/↓/←/→ -- move
+- LShift/RShift -- sprint
 
 ## Source of statics
 

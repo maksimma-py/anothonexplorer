@@ -1,0 +1,21 @@
+#:schema https://www.schemastore.org/prek.json
+
+[auto_update]
+cooldown_days = 7
+
+[[repos]]
+repo = "builtin"
+hooks = [
+    { id = "trailing-whitespace" },
+    { id = "end-of-file-fixer" },
+    { id = "check-added-large-files" },
+    { id = "check-toml" },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+    { id = "ruff-lint", name="test and fix linting...", entry="ruff check --fix", language="system", types_or = ["python", "pyi"]  },
+    { id = "ty-check", name="check typing...", entry="ty check", language="system", types_or = ["python", "pyi"]  },
+    { id = "ruff-format", name="format...", entry="ruff format", language="system", types_or = ["python", "pyi"]  },
+]
