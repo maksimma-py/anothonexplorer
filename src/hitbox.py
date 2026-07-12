@@ -1,14 +1,17 @@
-from collections.abc import Callable
 from functools import partialmethod
 from math import inf
 from operator import attrgetter
+from typing import TYPE_CHECKING
 
 import pygame
-from environs import env
 from loguru import logger
 
 from .abstract_classes import BaseSprite
-from .config import DEBUG, GROUPS
+from .groups import BLOCKS, DEBUG_POINTS
+from .settings import GAME
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class DebugPoint(BaseSprite):
@@ -21,7 +24,7 @@ class DebugPoint(BaseSprite):
     def __init__(
         self, x: float, y: float, *groups: pygame.sprite.AbstractGroup
     ) -> None:
-        super().__init__(GROUPS.DEBUG_POINTS, *groups)
+        super().__init__(DEBUG_POINTS, *groups)
         self.image = pygame.Surface(size=(self.SIZE, self.SIZE))
         self.image.fill("red")
         self.rect = self.image.get_frect(center=(x, y))
@@ -32,10 +35,9 @@ class DebugPoint(BaseSprite):
 
 
 class Hitbox:
-    step = env.float("HITBOX_STEP")
-
-    def __init__(self, sprite: BaseSprite) -> None:
+    def __init__(self, sprite: BaseSprite, step: int = 10) -> None:
         self.sprite = sprite
+        self.step = step
 
     def collides(
         self, group: pygame.sprite.AbstractGroup
@@ -44,7 +46,7 @@ class Hitbox:
             group.sprites(), key=attrgetter("rect")
         )
 
-    block_collides = partialmethod(collides, GROUPS.BLOCKS)
+    block_collides = partialmethod(collides, BLOCKS)
 
     def try_to_not_collide[**PS](
         self,
@@ -56,7 +58,7 @@ class Hitbox:
 
         while collided := collider(*args, **kwargs):
             x, y = self.sprite.rect.center
-            if DEBUG:
+            if GAME.DEBUG:
                 DebugPoint(x, y)
             last_countervector = self.get_collision_countervector(collided)
             self.sprite.rect.center += last_countervector

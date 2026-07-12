@@ -1,9 +1,9 @@
 [project]
 name = "anothonexplorer"
-version = "0.2.2"
-requires-python = ">=3.13"
+version = "0.3.0"
+requires-python = ">=3.14"
 dependencies = [
-    "environs>=15.0.1",
     "loguru>=0.7.3",
+    "pydantic-settings>=2.14.2",
     "pygame-ce>=2.5.7",
 ]

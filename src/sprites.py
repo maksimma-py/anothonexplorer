@@ -1,5 +1,5 @@
-from collections.abc import Sequence
 from random import randint
+from typing import TYPE_CHECKING
 
 import pygame
 from pygame import locals as lc
@@ -11,10 +11,16 @@ from src.animation.decoration import (
 )
 
 from .abstract_classes import BaseSprite, SpriteWithDirection
-from .animation.base_animation import BaseAnimation
 from .animation.player import PlayerAnimation
-from .config import DISPLAY, EVENTS, GROUPS
+from .events import CHANGE_DECORATION
+from .groups import BLOCKS, DECORATION, UNIVERSUM
 from .hitbox import Hitbox
+from .settings import DISPLAY
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from .animation.base_animation import BaseAnimation
 
 
 class Player(SpriteWithDirection):
@@ -70,7 +76,7 @@ class Block(BaseSprite):
     SIZE = pygame.Vector2(100, 100)
 
     def __init__(self, color: Sequence[int] | str | int) -> None:
-        super().__init__(GROUPS.BLOCKS)
+        super().__init__(BLOCKS)
 
         self.image = pygame.Surface(self.SIZE)
         self.image.fill(color)
@@ -86,7 +92,7 @@ class Block(BaseSprite):
                 ).elementwise()
                 * self.SIZE
             )
-            for sprite in GROUPS.UNIVERSUM.sprites():
+            for sprite in UNIVERSUM.sprites():
                 if sprite.rect and not (
                     self.rect.contains(sprite.rect)
                     or not self.rect.colliderect(sprite.rect)
@@ -106,7 +112,7 @@ class Decoration(BaseSprite):
     def __init__(
         self, animation: BaseAnimation, *groups: pygame.sprite.AbstractGroup
     ) -> None:
-        super().__init__(GROUPS.DECORATION, *groups)
+        super().__init__(DECORATION, *groups)
 
         self.hitbox = Hitbox(self)
         self.animations = iter(animation)
@@ -117,7 +123,7 @@ class Decoration(BaseSprite):
     def update(self, dt: float) -> None:  # noqa: ARG002
         keys = pygame.key.get_just_pressed()
         if keys[lc.K_l]:
-            pygame.event.post(EVENTS.CHANGE_DECORATION)
+            pygame.event.post(CHANGE_DECORATION)
         self.rect.center = pygame.mouse.get_pos()
         self.image = next(self.animations)
 

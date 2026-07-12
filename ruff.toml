@@ -34,3 +34,6 @@ max-complexity = 6
 
 [lint.pydoclint]
 ignore-one-line-docstrings = true
+
+[lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic_settings.BaseSettings"]

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import pygame
 
-from .config import GROUPS
+from .groups import UNIVERSUM
 
 
 class BaseSprite(ABC, pygame.sprite.Sprite):
@@ -12,7 +12,7 @@ class BaseSprite(ABC, pygame.sprite.Sprite):
 
     @abstractmethod
     def __init__(self, *groups: pygame.sprite.AbstractGroup) -> None:
-        super().__init__(GROUPS.UNIVERSUM, *groups)
+        super().__init__(UNIVERSUM, *groups)
 
     @abstractmethod
     def update(self, dt: float) -> None:

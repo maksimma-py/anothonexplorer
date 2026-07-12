@@ -1,7 +1,5 @@
-from collections.abc import Callable, Sequence
 from itertools import pairwise, starmap
 from operator import eq
-from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -10,6 +8,9 @@ import pygame
 from .base_animation import BaseAnimation
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+    from os import PathLike
+
     from pygame.surface import Surface
 
 

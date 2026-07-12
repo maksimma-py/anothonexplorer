@@ -1,11 +1,16 @@
-from collections.abc import Sequence
 from itertools import cycle
+from typing import TYPE_CHECKING
 
 import pygame
-from environs import env
 
-from .config import DEBUG, DISPLAY, EVENTS, FPS, GROUPS, display
+from .events import CHANGE_DECORATION
+from .fonts import DEBUG_FONT
+from .groups import DECORATION, UNIVERSUM
+from .settings import DISPLAY, GAME, display
 from .sprites import Block, Candle, Candles, Player, Torch
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class Game:
@@ -14,16 +19,14 @@ class Game:
         self.window_setup_settings()
         self.sprites_setup()
 
-        self.fps = FPS
+        self.fps = DISPLAY.FPS
         self.clock = pygame.Clock()
         self.ui = UI(self)
 
     @staticmethod
     def window_setup_settings() -> None:
         pygame.display.set_caption(DISPLAY.CAPTIONS)
-        pygame.display.set_icon(
-            pygame.image.load(DISPLAY.ICON_PATH).convert_alpha()
-        )
+        pygame.display.set_icon(DISPLAY.ICON)
 
     def sprites_setup(self) -> None:
         self.player = Player(250)
@@ -44,7 +47,7 @@ class Game:
                 match event.type:
                     case pygame.QUIT:
                         self.running = False
-                    case EVENTS.CHANGE_DECORATION.type:
+                    case CHANGE_DECORATION.type:
                         self.current_decoration.kill()
                         self.current_decoration = next(self.decorations)()
 
@@ -60,25 +63,21 @@ class Game:
         self, bg_color: Sequence[int] | str | int
     ) -> None:
         display.fill(bg_color)
-        GROUPS.UNIVERSUM.update(self.dt)
-        GROUPS.UNIVERSUM.draw(display)
+        UNIVERSUM.update(self.dt)
+        UNIVERSUM.draw(display)
 
 
 class UI:
     def __init__(self, game: Game) -> None:
         self.game = game
-
-        with env.prefixed("DEBUG_FONT_"):
-            self.debug_font = pygame.font.SysFont(
-                env.str("NAME"), env.int("SIZE")
-            )
-            self.debug_font.align = pygame.FONT_RIGHT
+        self.debug_font = DEBUG_FONT
+        self.debug_font.align = pygame.FONT_RIGHT
 
     def draw(self) -> None:
-        if DEBUG:
+        if GAME.DEBUG:
             hitbox_color = (
                 "purple"
-                if self.game.player.hitbox.collides(GROUPS.DECORATION)
+                if self.game.player.hitbox.collides(DECORATION)
                 else "green"
             )
 

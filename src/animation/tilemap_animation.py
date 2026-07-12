@@ -1,11 +1,13 @@
-from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from math import prod
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 
 import pygame
 
 from .base_animation import BaseAnimation
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
 
 
 class TilemapAnimation(BaseAnimation):
