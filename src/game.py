@@ -99,7 +99,7 @@ class UI:
             debug_text += f"Time: {pygame.time.get_ticks() / 1000:.2f}\n"
             debug_text += f"FPS: {self.game.clock.get_fps():.2f}\n"
 
-            debug_text += f"Player direction: {self.game.player.player_animations.current_str_direction}\n"
+            debug_text += f"Player direction: {self.game.player.player_animations.current_direction.value}\n"
             debug_text += f"Player direction magnitude: {self.game.player.direction.magnitude():.2f}\n"
 
             text_surface = self.render_outlined(

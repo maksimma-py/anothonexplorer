@@ -1,4 +1,5 @@
 from collections.abc import Iterator, Sequence
+from enum import StrEnum, auto
 from itertools import cycle, repeat
 
 import pygame
@@ -55,3 +56,13 @@ class BaseAnimation:
                 )
 
         yield from inner()
+
+
+class Direction(StrEnum):
+    DOWN = auto()
+    LEFT = auto()
+    RIGHT = auto()
+    UP = auto()
+
+
+type DirectionalAnimation = dict[Direction, BaseAnimation]

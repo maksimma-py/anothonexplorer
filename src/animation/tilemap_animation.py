@@ -1,6 +1,5 @@
-from dataclasses import dataclass
 from math import prod
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
@@ -59,14 +58,3 @@ class TilemapAnimation(BaseAnimation):
     @frames.setter
     def frames(self, value: Sequence[pygame.Vector2]) -> None:
         self._frames_indexes = value
-
-
-type StrDirection = Literal["down", "left", "right", "up"]
-
-
-@dataclass
-class TMADirections:
-    down: TilemapAnimation
-    up: TilemapAnimation
-    left: TilemapAnimation
-    right: TilemapAnimation

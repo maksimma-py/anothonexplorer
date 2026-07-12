@@ -1,88 +1,81 @@
-from contextlib import contextmanager
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.pydantic_adapters import Surface, Vector2
 from src.settings import env_file_settings
 
-from .tilemap_animation import StrDirection, TilemapAnimation, TMADirections
+from .base_animation import Direction, DirectionalAnimation
+from .tilemap_animation import TilemapAnimation
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterator, Sequence
+    from collections.abc import Iterator, Sequence
 
     import pygame
 
     from src.abstract_classes import SpriteWithDirection
 
 
-class PlayerTMA(BaseSettings):
+class PlayerAnimationTilemap(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="PLAYER_TMA_", **env_file_settings
+        env_prefix="PLAYER_ANIMATION_TILEMAP_", **env_file_settings
     )
 
-    TILEMAP: Surface
+    TILEMAP: Surface = Field(alias="PLAYER_ANIMATION_TILEMAP")
     TILESIZE: Vector2
-    FACTOR: float
+    SCALE_FACTOR: float
 
-
-PLAYER_TMA = PlayerTMA()
-
-
-@contextmanager
-def temp_partial[**PS, R](
-    f: Callable[..., R], *args: PS.args, **kwargs: PS.kwargs
-) -> Generator[partial[R]]:
-    yield partial(f, *args, **kwargs)
-
-
-class PlayerAnimationDirections:
-    @staticmethod
-    def __player_tma_helper(
-        start: int, size: int, timeouts: Sequence[int] | int
+    def animation(
+        self, start: int, size: int, timeouts: Sequence[int] | int
     ) -> TilemapAnimation:
         return TilemapAnimation.indexes_as_range(
-            PLAYER_TMA.TILEMAP,
-            PLAYER_TMA.TILESIZE,
+            self.TILEMAP,
+            self.TILESIZE,
             range(start, start + size),
             timeouts=timeouts,
-            factor=PLAYER_TMA.FACTOR,
+            factor=self.SCALE_FACTOR,
         )
 
-    def __init__(self) -> None:
-        with temp_partial(
-            self.__player_tma_helper, size=2, timeouts=(1000, 500)
-        ) as start:
-            self.IDLE = TMADirections(
-                down=start(0), left=start(2), right=start(4), up=start(6)
-            )
 
-        with temp_partial(
-            self.__player_tma_helper, size=4, timeouts=200
-        ) as start:
-            self.WALK = TMADirections(
-                down=start(8), left=start(12), right=start(16), up=start(20)
-            )
-
-        with temp_partial(
-            self.__player_tma_helper, size=6, timeouts=133
-        ) as start:
-            self.RUN = TMADirections(
-                down=start(24), left=start(30), right=start(36), up=start(42)
-            )
+PLAYER_ATM = PlayerAnimationTilemap()
 
 
-PLAYER_ANIMATION_DIRECTIONS = PlayerAnimationDirections()
+class PlayerDirectionalAnimations:
+    _idle = partial(PLAYER_ATM.animation, size=2, timeouts=(1000, 500))
+    IDLE: ClassVar[DirectionalAnimation] = {
+        Direction.DOWN: _idle(0),
+        Direction.LEFT: _idle(2),
+        Direction.RIGHT: _idle(4),
+        Direction.UP: _idle(6),
+    }
+
+    _walk = partial(PLAYER_ATM.animation, size=4, timeouts=200)
+    WALK: ClassVar[DirectionalAnimation] = {
+        Direction.DOWN: _walk(8),
+        Direction.LEFT: _walk(12),
+        Direction.RIGHT: _walk(16),
+        Direction.UP: _walk(20),
+    }
+
+    _run = partial(PLAYER_ATM.animation, size=6, timeouts=133)
+    RUN: ClassVar[DirectionalAnimation] = {
+        Direction.DOWN: _run(24),
+        Direction.LEFT: _run(30),
+        Direction.RIGHT: _run(36),
+        Direction.UP: _run(42),
+    }
+
+
+PLAYER_DA = PlayerDirectionalAnimations()
 
 
 class PlayerAnimation:
     def __init__(self, player: SpriteWithDirection) -> None:
         self.player = player
-        self.current_tma_directions: TMADirections = (
-            PLAYER_ANIMATION_DIRECTIONS.IDLE
-        )
-        self.current_str_direction: StrDirection = "down"
+        self.current_da: DirectionalAnimation = PLAYER_DA.IDLE
+        self.current_direction: Direction = Direction.DOWN
 
         self.do_change_animation = True
         self.__current_animation = self.current_animation
@@ -90,46 +83,49 @@ class PlayerAnimation:
     def change_animation(self) -> None:
         self.do_change_animation = False
 
-        tma, str_direction = (
-            self.next_tma_directions(),
-            self.next_str_direction(),
+        da, direction = (
+            self.next_directional_animation(),
+            self.next_direction(),
         )
 
-        if str_direction and str_direction != self.current_str_direction:
-            self.current_str_direction = str_direction
+        if direction and direction != self.current_direction:
+            self.current_direction = direction
             self.do_change_animation = True
 
-        if tma != self.current_tma_directions:
-            self.current_tma_directions = tma
+        if da != self.current_da:
+            self.current_da = da
             self.do_change_animation = True
 
-    def next_str_direction(self) -> StrDirection | None:
-        if self.player.direction.x > 0:
-            return "right"
-        if self.player.direction.x < 0:
-            return "left"
-        if self.player.direction.y > 0:
-            return "down"
-        if self.player.direction.y < 0:
-            return "up"
+    def next_direction(self) -> Direction | None:
+        dir_x, dir_y = self.player.direction
+        if dir_x > 0:
+            return Direction.RIGHT
+        if dir_x < 0:
+            return Direction.LEFT
+        if dir_y > 0:
+            return Direction.DOWN
+        if dir_y < 0:
+            return Direction.UP
         return None
 
-    def next_tma_directions(self) -> TMADirections:
+    def next_directional_animation(self) -> DirectionalAnimation:
         run_threshold = 1.2
         walk_threshold = 0.5
+        direction_magnitude = self.player.direction.magnitude()
 
-        if self.player.direction.magnitude() > run_threshold:
-            return PLAYER_ANIMATION_DIRECTIONS.RUN
-        if self.player.direction.magnitude() > walk_threshold:
-            return PLAYER_ANIMATION_DIRECTIONS.WALK
-        return PLAYER_ANIMATION_DIRECTIONS.IDLE
+        return (
+            PLAYER_DA.RUN
+            if direction_magnitude > run_threshold
+            else PLAYER_DA.WALK
+            if direction_magnitude > walk_threshold
+            else PLAYER_DA.IDLE
+        )
 
     @property
     def current_animation(self) -> Iterator[pygame.Surface]:
         if self.do_change_animation:
             self.__current_animation = iter(
-                getattr(
-                    self.current_tma_directions, self.current_str_direction
-                )
+                self.current_da[self.current_direction]
             )
+            self.do_change_animation = False
         return self.__current_animation
