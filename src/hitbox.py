@@ -1,14 +1,14 @@
 from functools import partialmethod
 from math import inf
 from operator import attrgetter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import pygame
 from loguru import logger
 
 from .abstract_classes import BaseSprite
 from .groups import BLOCKS, DEBUG_POINTS
-from .settings import GAME
+from .settings import GAME_SETTINGS
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -18,7 +18,7 @@ class DebugPoint(BaseSprite):
     image: pygame.Surface
     rect: pygame.FRect
 
-    _layer: float = inf
+    _layer: ClassVar[float] = inf
     SIZE = 7
 
     def __init__(
@@ -28,7 +28,6 @@ class DebugPoint(BaseSprite):
         self.image = pygame.Surface(size=(self.SIZE, self.SIZE))
         self.image.fill("red")
         self.rect = self.image.get_frect(center=(x, y))
-        self._layer = 1000
 
     def update(self, dt: float) -> None:
         super().update(dt)
@@ -58,7 +57,7 @@ class Hitbox:
 
         while collided := collider(*args, **kwargs):
             x, y = self.sprite.rect.center
-            if GAME.DEBUG:
+            if GAME_SETTINGS.DEBUG:
                 DebugPoint(x, y)
             last_countervector = self.get_collision_countervector(collided)
             self.sprite.rect.center += last_countervector

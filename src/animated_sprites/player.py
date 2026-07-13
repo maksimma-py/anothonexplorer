@@ -1,49 +1,33 @@
 from functools import partial
 from typing import TYPE_CHECKING, ClassVar
 
+import pygame
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
 
-from src.pydantic_adapters import Surface, Vector2
-from src.settings import env_file_settings
-
-from .base_animation import Direction, DirectionalAnimation
-from .tilemap_animation import TilemapAnimation
+from src.abstract_classes import SpriteWithDirection
+from src.animation import Direction, DirectionalAnimation
+from src.hitbox import Hitbox
+from src.pydantic_adapters import Surface
+from src.settings import TilemapSettings, env_file_settings
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
-
-    import pygame
-
-    from src.abstract_classes import SpriteWithDirection
+    from collections.abc import Iterator
 
 
-class PlayerAnimationTilemap(BaseSettings):
+class PlayerTilemap(TilemapSettings):
     model_config = SettingsConfigDict(
         env_prefix="PLAYER_ANIMATION_TILEMAP_", **env_file_settings
     )
 
     TILEMAP: Surface = Field(alias="PLAYER_ANIMATION_TILEMAP")
-    TILESIZE: Vector2
-    SCALE_FACTOR: float
-
-    def animation(
-        self, start: int, size: int, timeouts: Sequence[int] | int
-    ) -> TilemapAnimation:
-        return TilemapAnimation.indexes_as_range(
-            self.TILEMAP,
-            self.TILESIZE,
-            range(start, start + size),
-            timeouts=timeouts,
-            factor=self.SCALE_FACTOR,
-        )
 
 
-PLAYER_ATM = PlayerAnimationTilemap()
+PLAYER_TM = PlayerTilemap()
 
 
 class PlayerDirectionalAnimations:
-    _idle = partial(PLAYER_ATM.animation, size=2, timeouts=(1000, 500))
+    _idle = partial(PLAYER_TM.animation, size=2, timeouts=(1000, 500))
     IDLE: ClassVar[DirectionalAnimation] = {
         Direction.DOWN: _idle(0),
         Direction.LEFT: _idle(2),
@@ -51,7 +35,7 @@ class PlayerDirectionalAnimations:
         Direction.UP: _idle(6),
     }
 
-    _walk = partial(PLAYER_ATM.animation, size=4, timeouts=200)
+    _walk = partial(PLAYER_TM.animation, size=4, timeouts=200)
     WALK: ClassVar[DirectionalAnimation] = {
         Direction.DOWN: _walk(8),
         Direction.LEFT: _walk(12),
@@ -59,7 +43,7 @@ class PlayerDirectionalAnimations:
         Direction.UP: _walk(20),
     }
 
-    _run = partial(PLAYER_ATM.animation, size=6, timeouts=133)
+    _run = partial(PLAYER_TM.animation, size=6, timeouts=133)
     RUN: ClassVar[DirectionalAnimation] = {
         Direction.DOWN: _run(24),
         Direction.LEFT: _run(30),
@@ -129,3 +113,52 @@ class PlayerAnimation:
             )
             self.do_change_animation = False
         return self.__current_animation
+
+
+class Player(SpriteWithDirection):
+    def __init__(self, speed: int) -> None:
+        super().__init__()
+
+        self.speed = speed
+        self.direction = pygame.Vector2()
+
+        self.hitbox = Hitbox(self)
+        self.player_animations = PlayerAnimation(self)
+
+        self.image = next(self.player_animations.current_animation)
+        self.rect = self.image.get_frect()
+
+    def update(self, dt: float) -> None:
+        self.direction.update(self.delta_move_vector)
+        self.move(dt)
+
+        self.player_animations.change_animation()
+        self.image = next(self.player_animations.current_animation)
+
+        self.hitbox.try_to_not_collide_with_blocks()
+
+    @property
+    def delta_move_vector(self) -> pygame.Vector2:
+        keys = pygame.key.get_pressed()
+        delta = pygame.Vector2(
+            (keys[pygame.K_RIGHT] or keys[pygame.K_d])
+            - (keys[pygame.K_LEFT] or keys[pygame.K_a]),
+            (keys[pygame.K_DOWN] or keys[pygame.K_s])
+            - (keys[pygame.K_UP] or keys[pygame.K_w]),
+        )
+        delta = delta and delta.normalize()
+
+        mods = pygame.key.get_mods()
+        if mods & pygame.KMOD_SHIFT:
+            delta *= 1.5
+
+        return delta
+
+    def move(self, dt: float) -> None:
+        self.rect.x += self.direction.x * self.speed * dt
+        if self.hitbox.block_collides():
+            self.rect.x -= self.direction.x * self.speed * dt
+
+        self.rect.y += self.direction.y * self.speed * dt
+        if self.hitbox.block_collides():
+            self.rect.y -= self.direction.y * self.speed * dt

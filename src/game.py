@@ -1,32 +1,41 @@
 from itertools import cycle
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
+from .animated_sprites import Decoration, Player
 from .events import CHANGE_DECORATION
 from .fonts import DEBUG_FONT
 from .groups import DECORATION, UNIVERSUM
-from .settings import DISPLAY, GAME, display
-from .sprites import Block, Candle, Candles, Player, Torch
+from .settings import DISPLAY_SETTINGS, GAME_SETTINGS, display
+from .static_sprites import Block
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
 class Game:
+    __instance: Self | None = None
+
+    def __new__(cls) -> Self:
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+
+        return cls.__instance
+
     def __init__(self) -> None:
         pygame.init()
         self.window_setup_settings()
         self.sprites_setup()
 
-        self.fps = DISPLAY.FPS
+        self.fps = DISPLAY_SETTINGS.FPS
         self.clock = pygame.Clock()
         self.ui = UI(self)
 
     @staticmethod
     def window_setup_settings() -> None:
-        pygame.display.set_caption(DISPLAY.CAPTIONS)
-        pygame.display.set_icon(DISPLAY.ICON)
+        pygame.display.set_caption(DISPLAY_SETTINGS.CAPTIONS)
+        pygame.display.set_icon(DISPLAY_SETTINGS.ICON)
 
     def sprites_setup(self) -> None:
         self.player = Player(250)
@@ -34,7 +43,7 @@ class Game:
         for _ in range(20):
             Block("gray50")
 
-        self.decorations = cycle((Candle, Candles, Torch))
+        self.decorations = cycle(Decoration.decorations.values())
         self.current_decoration = next(self.decorations)()
 
     def start(self) -> None:
@@ -74,7 +83,7 @@ class UI:
         self.debug_font.align = pygame.FONT_RIGHT
 
     def draw(self) -> None:
-        if GAME.DEBUG:
+        if GAME_SETTINGS.DEBUG:
             hitbox_color = (
                 "purple"
                 if self.game.player.hitbox.collides(DECORATION)
@@ -102,11 +111,13 @@ class UI:
             debug_text += f"Player direction: {self.game.player.player_animations.current_direction.value}\n"
             debug_text += f"Player direction magnitude: {self.game.player.direction.magnitude():.2f}\n"
 
+            debug_text += f"Current decoration: {self.game.current_decoration.__class__.__name__.lower()!r}\n"
+
             text_surface = self.render_outlined(
                 self.debug_font, debug_text, "white", "black", 5
             )
             text_rect = text_surface.get_frect(
-                topright=(DISPLAY.SIZE.x - 20, 20)
+                topright=(DISPLAY_SETTINGS.SIZE.x - 20, 20)
             )
             display.blit(text_surface, text_rect)
 

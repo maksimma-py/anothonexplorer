@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, ClassVar
 
 import pygame
 from pydantic_core import CoreSchema, core_schema
@@ -11,8 +11,7 @@ if TYPE_CHECKING:
 
 
 class PydanticAdapter[T, PDT](ABC):
-    proxy_schema: CoreSchema
-    to_json: bool = False
+    proxy_schema: ClassVar[CoreSchema]
 
     @classmethod
     def __get_pydantic_core_schema__(  # ruff:ignore[bad-dunder-method-name]

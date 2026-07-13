@@ -36,4 +36,4 @@ max-complexity = 6
 ignore-one-line-docstrings = true
 
 [lint.flake8-type-checking]
-runtime-evaluated-base-classes = ["pydantic_settings.BaseSettings"]
+runtime-evaluated-base-classes = ["pydantic_settings.BaseSettings", "src.settings.TilemapSettings", "src.settings.FontSettings"]
