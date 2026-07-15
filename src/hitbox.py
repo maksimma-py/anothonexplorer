@@ -1,10 +1,9 @@
 from functools import partialmethod
 from math import inf
 from operator import attrgetter
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 import pygame
-from loguru import logger
 
 from .abstract_classes import BaseSprite
 from .groups import BLOCKS, DEBUG_POINTS
@@ -18,7 +17,7 @@ class DebugPoint(BaseSprite):
     image: pygame.Surface
     rect: pygame.FRect
 
-    _layer: ClassVar[float] = inf
+    _layer: float = inf
     SIZE = 7
 
     def __init__(
@@ -101,7 +100,6 @@ class Hitbox:
             for point in points:
                 point.x /= abs(point.x) or 1
                 point.y /= abs(point.y) or 1
-            logger.debug(f"COLLIDED ANGLES: {points}")
 
         countervector.x = (
             collided.rect.collidepoint(self.rect.topleft)
@@ -128,7 +126,6 @@ class Hitbox:
 
         if comparing:
             countervector = comparing.elementwise() * countervector
-        logger.debug(f"{countervector = }")
 
         return countervector.normalize() * self.step
 

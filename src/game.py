@@ -1,17 +1,14 @@
 from itertools import cycle
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
 import pygame
 
 from .animated_sprites import Decoration, Player
 from .events import CHANGE_DECORATION
-from .fonts import DEBUG_FONT
+from .fonts import DebugFont
 from .groups import DECORATION, UNIVERSUM
 from .settings import DISPLAY_SETTINGS, GAME_SETTINGS, display
 from .static_sprites import Block
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class Game:
@@ -61,83 +58,55 @@ class Game:
                         self.current_decoration = next(self.decorations)()
 
             if self.running:
-                self.update_and_draw_sprites("gray30")
+                self.update_and_draw_sprites()
                 self.ui.draw()
-
-                pygame.display.flip()
+                pygame.display.update(self.draw_rects)
 
         pygame.quit()
 
-    def update_and_draw_sprites(
-        self, bg_color: Sequence[int] | str | int
-    ) -> None:
-        display.fill(bg_color)
+    def update_and_draw_sprites(self) -> None:
         UNIVERSUM.update(self.dt)
-        UNIVERSUM.draw(display)
+        UNIVERSUM.clear()
+        self.draw_rects = UNIVERSUM.draw(display)
 
 
 class UI:
     def __init__(self, game: Game) -> None:
         self.game = game
-        self.debug_font = DEBUG_FONT
-        self.debug_font.align = pygame.FONT_RIGHT
+        self.debug_font = DebugFont()
 
     def draw(self) -> None:
         if GAME_SETTINGS.DEBUG:
-            hitbox_color = (
-                "purple"
-                if self.game.player.hitbox.collides(DECORATION)
-                else "green"
-            )
+            self.draw_hitboxes()
+            self.draw_debug_text()
 
-            pygame.draw.rect(
-                display, hitbox_color, self.game.player.hitbox.rect, width=7
-            )
-
-            pygame.draw.rect(display, "red", self.game.player.rect, width=7)
-
-            pygame.draw.rect(
-                display,
-                "blue",
-                self.game.current_decoration.hitbox.rect,
-                width=7,
-            )
-
-            debug_text = ""
-
-            debug_text += f"Time: {pygame.time.get_ticks() / 1000:.2f}\n"
-            debug_text += f"FPS: {self.game.clock.get_fps():.2f}\n"
-
-            debug_text += f"Player direction: {self.game.player.player_animations.current_direction.value}\n"
-            debug_text += f"Player direction magnitude: {self.game.player.direction.magnitude():.2f}\n"
-
-            debug_text += f"Current decoration: {self.game.current_decoration.__class__.__name__.lower()!r}\n"
-
-            text_surface = self.render_outlined(
-                self.debug_font, debug_text, "white", "black", 5
-            )
-            text_rect = text_surface.get_frect(
-                topright=(DISPLAY_SETTINGS.SIZE.x - 20, 20)
-            )
-            display.blit(text_surface, text_rect)
-
-    @staticmethod
-    def render_outlined(
-        font: pygame.Font,
-        text: str,
-        text_color: pygame.typing.ColorLike,
-        outline_color: pygame.typing.ColorLike,
-        outline_width: int,
-    ) -> pygame.Surface:
-        old_outline = font.outline
-        if old_outline != 0:
-            font.outline = 0
-        base_text_surf = font.render(text, antialias=True, color=text_color)
-        font.outline = outline_width
-        outlined_text_surf = font.render(
-            text, antialias=True, color=outline_color
+    def draw_hitboxes(self) -> None:
+        hitbox_color = (
+            "purple"
+            if self.game.player.hitbox.collides(DECORATION)
+            else "green"
         )
 
-        outlined_text_surf.blit(base_text_surf, (outline_width, outline_width))
-        font.outline = old_outline
-        return outlined_text_surf
+        pygame.draw.rect(
+            display, hitbox_color, self.game.player.hitbox.rect, width=7
+        )
+
+        pygame.draw.rect(display, "red", self.game.player.rect, width=7)
+
+        pygame.draw.rect(
+            display,
+            "blue",
+            self.game.current_decoration.hitbox.rect,
+            width=7,
+        )
+
+    def draw_debug_text(self) -> None:
+        self.debug_text = {
+            "Time": f"{pygame.time.get_ticks() / 1000:.2f}",
+            "FPS": f"{self.game.clock.get_fps():.2f}",
+            "Player direction": f"{self.game.player.player_animations.current_direction.value}",
+            "Player direction magnitude": f"{self.game.player.direction.magnitude():.2f}",
+            "Current decoration": f"{self.game.current_decoration.__class__.__name__.lower()!r}",
+        }
+
+        self.debug_font.render(self.debug_text)
