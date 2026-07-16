@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, ClassVar, Self
 
 import pygame
 
-from src.abstract_classes import BaseSprite
 from src.animation import DirectoryAnimation
+from src.base_classes import BaseSprite
 from src.events import CHANGE_DECORATION
 from src.groups import DECORATION
 from src.hitbox import Hitbox
@@ -18,6 +18,9 @@ if TYPE_CHECKING:
 class Decoration(BaseSprite):
     image: pygame.Surface
     rect: pygame.FRect
+
+    is_ui = True
+    _debug_color = "green"
 
     animation: ClassVar[BaseAnimation]
     decorations: ClassVar[dict[str, type[Self]]] = {}

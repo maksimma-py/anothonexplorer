@@ -5,14 +5,15 @@ import pygame
 from pydantic import Field
 from pydantic_settings import SettingsConfigDict
 
-from src.abstract_classes import SpriteWithDirection
 from src.animation import Direction, DirectionalAnimation
+from src.base_classes import SpriteWithDirection
+from src.groups import DECORATION
 from src.hitbox import Hitbox
 from src.pydantic_adapters import Surface
 from src.settings import TilemapSettings, env_file_settings
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
 
 
 class PlayerTilemap(TilemapSettings):
@@ -116,7 +117,9 @@ class PlayerAnimation:
 
 
 class Player(SpriteWithDirection):
-    def __init__(self, speed: int) -> None:
+    _debug_color = "red"
+
+    def __init__(self, speed: int, **rect_kwargs) -> None:  # ruff:ignore[missing-type-kwargs]
         super().__init__()
 
         self.speed = speed
@@ -126,7 +129,9 @@ class Player(SpriteWithDirection):
         self.player_animations = PlayerAnimation(self)
 
         self.image = next(self.player_animations.current_animation)
-        self.rect = self.image.get_frect()
+        self.rect = self.image.get_frect(**rect_kwargs)
+
+        self.universum.camera.center = self.rect.center
 
     def update(self, dt: float) -> None:
         self.direction.update(self.delta_move_vector)
@@ -136,6 +141,16 @@ class Player(SpriteWithDirection):
         self.image = next(self.player_animations.current_animation)
 
         self.hitbox.try_to_not_collide_with_blocks()
+        self.lerp_camera_to_his_pos(dt)
+
+    def debug_callback(self) -> Sequence[tuple[pygame.FRect, str | None]]:
+        hitbox_color = (
+            "purple" if self.hitbox.collides(DECORATION) else "green"
+        )
+        return (
+            (self.rect, self.debug_color),
+            (self.hitbox.rect, hitbox_color),
+        )
 
     @property
     def delta_move_vector(self) -> pygame.Vector2:
@@ -162,3 +177,8 @@ class Player(SpriteWithDirection):
         self.rect.y += self.direction.y * self.speed * dt
         if self.hitbox.block_collides():
             self.rect.y -= self.direction.y * self.speed * dt
+
+    def lerp_camera_to_his_pos(self, dt: float) -> None:
+        self.universum.camera.center = pygame.Vector2(
+            self.universum.camera.center
+        ).lerp(self.rect.center, pygame.math.clamp(dt * 10, 0, 1))

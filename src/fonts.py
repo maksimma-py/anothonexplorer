@@ -4,7 +4,7 @@ import pygame
 from pydantic_settings import SettingsConfigDict
 from pygame import font
 
-from .abstract_classes import FontSprite
+from .base_classes import FontSprite
 from .settings import DISPLAY_SETTINGS, FontSettings, env_file_settings
 
 if not font.get_init():
@@ -12,6 +12,8 @@ if not font.get_init():
 
 
 class DebugFont(FontSprite):
+    is_ui = True
+
     class DebugFontSettings(FontSettings):
         model_config = SettingsConfigDict(
             env_prefix="DEBUG_FONT_", **env_file_settings

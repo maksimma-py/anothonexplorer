@@ -1,25 +1,10 @@
-import pygame
-from pygame.sprite import DirtySprite, Group, LayeredDirty, Sprite
+from typing import TYPE_CHECKING
 
-from .settings import DISPLAY_SETTINGS, display
+from pygame.sprite import Group
 
+if TYPE_CHECKING:
+    from .base_classes import BaseSprite
 
-class Universum[T: DirtySprite](LayeredDirty[T]):
-    bg_color = "gray30"
-
-    def clear(
-        self,
-        surface: pygame.Surface | None = None,
-        bgd: pygame.Surface | None = None,
-    ) -> None:
-        surface = surface or display
-        if not bgd:
-            bgd = pygame.Surface(DISPLAY_SETTINGS.SIZE)
-            bgd.fill(self.bg_color)
-        super().clear(surface, bgd)
-
-
-UNIVERSUM: Universum[DirtySprite] = Universum()
-BLOCKS: Group[Sprite] = Group()
-DEBUG_POINTS: Group[Sprite] = Group()
-DECORATION: Group[Sprite] = Group()
+BLOCKS: Group[BaseSprite] = Group()
+DEBUG_POINTS: Group[BaseSprite] = Group()
+DECORATION: Group[BaseSprite] = Group()

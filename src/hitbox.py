@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from .abstract_classes import BaseSprite
+from .base_classes import BaseSprite
 from .groups import BLOCKS, DEBUG_POINTS
 from .settings import GAME_SETTINGS
 

@@ -16,7 +16,7 @@ nested-string-quote-style = "preferred"
 
 [lint]
 select = ["ALL"]
-ignore = ["COM812", "CPY", "D", "FIX001", "FIX003", "FIX004", "S603"]
+ignore = ["COM812", "CPY", "D", "FIX001", "FIX003", "FIX004", "S603", "S311"]
 
 [lint.per-file-ignores]
 "*_test.py" = ["S"]

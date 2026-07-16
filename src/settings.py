@@ -22,6 +22,7 @@ env_file_settings = {
 class Game(BaseSettings):
     model_config = SettingsConfigDict(**env_file_settings)
     DEBUG: bool
+    VSYNC: bool
 
 
 GAME_SETTINGS = Game()
@@ -39,7 +40,12 @@ class DisplaySettings(BaseSettings):
 
 
 DISPLAY_SETTINGS = DisplaySettings()
-display = pygame.display.set_mode(DISPLAY_SETTINGS.SIZE)
+try:
+    display = pygame.display.set_mode(
+        DISPLAY_SETTINGS.SIZE, vsync=GAME_SETTINGS.VSYNC
+    )
+except pygame.error:
+    display = pygame.display.set_mode(DISPLAY_SETTINGS.SIZE)
 
 
 class TilemapSettings(BaseSettings):

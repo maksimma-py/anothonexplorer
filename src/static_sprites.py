@@ -1,46 +1,61 @@
+from operator import attrgetter
 from random import randint
-from typing import TYPE_CHECKING
 
 import pygame
 
-from .abstract_classes import BaseSprite
-from .groups import BLOCKS, UNIVERSUM
+from .base_classes import BaseSprite
+from .groups import BLOCKS
 from .settings import DISPLAY_SETTINGS
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class Block(BaseSprite):
     SIZE = pygame.Vector2(100, 100)
 
-    def __init__(self, color: Sequence[int] | str | int) -> None:
+    def __init__(self) -> None:
         super().__init__(BLOCKS)
 
         self.image = pygame.Surface(self.SIZE)
-        self.image.fill(color)
+        self.color = pygame.Color.from_hsva(randint(0, 360), 75, 100, 100)
+        self.image.fill(self.color)
 
         self.rect = self.image.get_frect()
-        ceil = (
-            DISPLAY_SETTINGS.SIZE - self.rect.size
-        ).elementwise() / self.SIZE
 
+        self.random_noncolliding_place()
+        self.propagate_color()
+
+    def random_noncolliding_place(self) -> None:
         while True:
-            self.rect.topleft = (
+            self.rect.center = (
                 pygame.Vector2(
-                    randint(0, int(ceil.x)),  # noqa: S311
-                    randint(0, int(ceil.y)),  # noqa: S311
+                    randint(-20, 20),
+                    randint(-20, 20),
                 ).elementwise()
                 * self.SIZE
+                + DISPLAY_SETTINGS.SIZE / 2
             )
-            for sprite in UNIVERSUM.sprites():
-                if sprite.rect and not (
-                    self.rect.contains(sprite.rect)
-                    or not self.rect.colliderect(sprite.rect)
+            for sprite in self.universum.sprites():
+                if (
+                    self.rect.colliderect(sprite.rect)
+                    and sprite is not self
+                    and not sprite.is_ui
                 ):
                     break
             else:
                 break
+
+    def propagate_color(self) -> None:
+        for block_object in self.rect.scale_by(1.1).collideobjectsall(
+            BLOCKS.sprites(), key=attrgetter("rect")
+        ):
+            if (
+                not isinstance(block_object, Block)
+                or block_object.color == self.color
+            ):
+                continue
+
+            block_object.color = self.color
+            block_object.image.fill(self.color)
+            block_object.propagate_color()
 
     def update(self, dt: float) -> None:
         super().update(dt)

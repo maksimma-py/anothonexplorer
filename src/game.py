@@ -4,9 +4,9 @@ from typing import Self
 import pygame
 
 from .animated_sprites import Decoration, Player
+from .base_classes import BaseSprite
 from .events import CHANGE_DECORATION
 from .fonts import DebugFont
-from .groups import DECORATION, UNIVERSUM
 from .settings import DISPLAY_SETTINGS, GAME_SETTINGS, display
 from .static_sprites import Block
 
@@ -35,10 +35,10 @@ class Game:
         pygame.display.set_icon(DISPLAY_SETTINGS.ICON)
 
     def sprites_setup(self) -> None:
-        self.player = Player(250)
+        self.player = Player(250, center=DISPLAY_SETTINGS.SIZE / 2)
 
-        for _ in range(20):
-            Block("gray50")
+        for _ in range(500):
+            Block()
 
         self.decorations = cycle(Decoration.decorations.values())
         self.current_decoration = next(self.decorations)()
@@ -49,14 +49,7 @@ class Game:
         while self.running:
             self.dt = self.clock.tick(self.fps) / 1000
 
-            for event in pygame.event.get():
-                match event.type:
-                    case pygame.QUIT:
-                        self.running = False
-                    case CHANGE_DECORATION.type:
-                        self.current_decoration.kill()
-                        self.current_decoration = next(self.decorations)()
-
+            self.running = self.handle_events()
             if self.running:
                 self.update_and_draw_sprites()
                 self.ui.draw()
@@ -64,10 +57,22 @@ class Game:
 
         pygame.quit()
 
+    def handle_events(self) -> bool:
+        for event in pygame.event.get():
+            match event.type:
+                case pygame.QUIT:
+                    return False
+                case pygame.WINDOWEXPOSED:
+                    pygame.display.update()
+                case CHANGE_DECORATION.type:
+                    self.current_decoration.kill()
+                    self.current_decoration = next(self.decorations)()
+        return True
+
     def update_and_draw_sprites(self) -> None:
-        UNIVERSUM.update(self.dt)
-        UNIVERSUM.clear()
-        self.draw_rects = UNIVERSUM.draw(display)
+        BaseSprite.universum.update(self.dt)
+        BaseSprite.universum.clear()
+        self.draw_rects = BaseSprite.universum.draw(display)
 
 
 class UI:
@@ -77,28 +82,7 @@ class UI:
 
     def draw(self) -> None:
         if GAME_SETTINGS.DEBUG:
-            self.draw_hitboxes()
             self.draw_debug_text()
-
-    def draw_hitboxes(self) -> None:
-        hitbox_color = (
-            "purple"
-            if self.game.player.hitbox.collides(DECORATION)
-            else "green"
-        )
-
-        pygame.draw.rect(
-            display, hitbox_color, self.game.player.hitbox.rect, width=7
-        )
-
-        pygame.draw.rect(display, "red", self.game.player.rect, width=7)
-
-        pygame.draw.rect(
-            display,
-            "blue",
-            self.game.current_decoration.hitbox.rect,
-            width=7,
-        )
 
     def draw_debug_text(self) -> None:
         self.debug_text = {
